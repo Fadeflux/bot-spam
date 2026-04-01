@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CommentBot - Dashboard</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0f;
+      --surface: #12121a;
+      --surface2: #1a1a26;
+      --border: #2a2a3a;
+      --accent: #00e5ff;
+      --accent2: #7c3aed;
+      --accent3: #f59e0b;
+      --red: #ef4444;
+      --green: #22c55e;
+      --text: #e2e8f0;
+      --muted: #64748b;
+      --font-mono: 'Space Mono', monospace;
+      --font-display: 'Syne', sans-serif;
+    }
+
+    html, body, #root { height: 100%; }
+    body { 
+      background: var(--bg); 
+      color: var(--text); 
+      font-family: var(--font-display); 
+      margin: 0;
+      padding: 0;
+    }
+
+    .glow-cyan { box-shadow: 0 0 20px rgba(0,229,255,0.15); }
+    .glow-purple { box-shadow: 0 0 20px rgba(124,58,237,0.2); }
+
+    @keyframes pulse-glow {
+      0%,100% { box-shadow: 0 0 6px rgba(0,229,255,0.4); }
+      50% { box-shadow: 0 0 18px rgba(0,229,255,0.8), 0 0 30px rgba(0,229,255,0.3); }
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes fadeUp {
+      from { opacity:0; transform: translateY(12px); }
+      to   { opacity:1; transform: translateY(0); }
+    }
+    @keyframes slideIn {
+      from { opacity:0; transform: translateX(-8px); }
+      to   { opacity:1; transform: translateX(0); }
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+    .fade-up { animation: fadeUp 0.35s ease forwards; }
+    .slide-in { animation: slideIn 0.3s ease forwards; }
+    .blink { animation: blink 1.2s infinite; }
+
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: var(--surface); }
+    ::-webkit-scrollbar-thumb { background: var(--accent2); border-radius: 4px; }
+
+    textarea, input, select {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 13px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      padding: 9px 12px;
+      border-radius: 8px;
+    }
+    textarea:focus, input:focus, select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(0,229,255,0.1);
+    }
+
+    .checkbox-custom {
+      appearance: none;
+      width: 18px; height: 18px;
+      border: 2px solid var(--border);
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s;
+      flex-shrink: 0;
+      position: relative;
+    }
+    .checkbox-custom:checked {
+      background: var(--accent2);
+      border-color: var(--accent2);
+    }
+    .checkbox-custom:checked::after {
+      content: '✓';
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 11px;
+      font-weight: bold;
+    }
+
+    .btn {
+      font-family: var(--font-display);
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      border: none;
+      border-radius: 8px;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn:hover { transform: translateY(-1px); }
+    .btn:active { transform: translateY(0); }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent2), #5b21b6);
+      color: #fff;
+      padding: 12px 24px;
+      font-size: 14px;
+      box-shadow: 0 4px 20px rgba(124,58,237,0.4);
+    }
+    .btn-primary:hover { box-shadow: 0 6px 28px rgba(124,58,237,0.6); }
+
+    .btn-danger {
+      background: linear-gradient(135deg, var(--red), #b91c1c);
+      color: #fff;
+      padding: 12px 24px;
+      font-size: 14px;
+      box-shadow: 0 4px 16px rgba(239,68,68,0.3);
+    }
+    
+    .btn-sm {
+      padding: 7px 14px;
+      font-size: 12px;
+      border-radius: 6px;
+      background: var(--surface2);
+      color: var(--accent);
+      border: 1px solid var(--accent);
+    }
+    .btn-sm:hover { background: rgba(0,229,255,0.08); }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      font-weight: 700;
+      letter-spacing: 0.08em;
+    }
+    .tag-ok { background: rgba(34,197,94,0.15); color: var(--green); border: 1px solid rgba(34,197,94,0.3); }
+
+    .log-entry {
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      line-height: 1.5;
+      border-left: 2px solid transparent;
+    }
+    .log-ok { background: rgba(34,197,94,0.06); border-color: var(--green); color: #86efac; }
+    .log-err { background: rgba(239,68,68,0.06); border-color: var(--red); color: #fca5a5; }
+    .log-info { background: rgba(0,229,255,0.06); border-color: var(--accent); color: #67e8f9; }
+    .log-warn { background: rgba(245,158,11,0.06); border-color: var(--accent3); color: #fcd34d; }
+
+    .section-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+    .section-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(255,255,255,0.02);
+    }
+    .section-title {
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 13px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+    .section-body { padding: 20px; }
+
+    .stat-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 18px;
+      text-align: center;
+    }
+    .stat-val {
+      font-family: var(--font-mono);
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--accent);
+    }
+    .stat-label {
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-top: 4px;
+    }
+
+    .progress-bar {
+      height: 4px;
+      background: var(--surface2);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      border-radius: 4px;
+      background: linear-gradient(90deg, var(--accent2), var(--accent));
+      transition: width 0.4s ease;
+    }
+
+    .account-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      transition: all 0.2s;
+      cursor: pointer;
+    }
+    .account-row:hover { border-color: var(--accent2); background: rgba(124,58,237,0.08); }
+    .account-row.selected { border-color: var(--accent2); background: rgba(124,58,237,0.12); animation: pulse-glow 2s infinite; }
+
+    .avatar {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 800;
+      font-family: var(--font-display);
+      flex-shrink: 0;
+    }
+
+    .spinner {
+      width: 16px; height: 16px;
+      border: 2px solid rgba(0,229,255,0.2);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      flex-shrink: 0;
+    }
+
+    .terminal-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      animation: pulse-glow 2s infinite;
+      flex-shrink: 0;
+    }
+
+    .container {
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 24px;
+      min-height: 100vh;
+    }
+
+    .header {
+      margin-bottom: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .header-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 4px;
+    }
+
+    .tab-buttons {
+      display: flex;
+      gap: 6px;
+    }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+
+    textarea { resize: vertical; }
+    
+    select { cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useRef, useCallback, useEffect } = React;
+
+    const API_URL = "http://localhost:5000";
+    const COLORS = ["#7c3aed","#06b6d4","#f59e0b","#ec4899","#22c55e","#f97316","#8b5cf6","#14b8a6"];
+    const ts = () => new Date().toLocaleTimeString("fr-FR");
+
+    function App() {
+      const [tab, setTab] = useState("accounts");
+      const [accounts, setAccounts] = useState([]);
+      const [newForm, setNewForm] = useState({ key: "", secret: "", token: "", tokenSecret: "" });
+      const [adding, setAdding] = useState(false);
+      const [links, setLinks] = useState("");
+      const [nbComments, setNbComments] = useState(1);
+      const [delay, setDelay] = useState(5);
+      const [mode, setMode] = useState("sim");
+      const [running, setRunning] = useState(false);
+      const [logs, setLogs] = useState([]);
+      const [progress, setProgress] = useState(0);
+      const [apiConnected, setApiConnected] = useState(false);
+      const logsEndRef = useRef(null);
+
+      // Check API connection
+      useEffect(() => {
+        const checkApi = async () => {
+          try {
+            const res = await fetch(`${API_URL}/api/health`, { timeout: 2000 });
+            if (res.ok) {
+              setApiConnected(true);
+              loadAccounts();
+              loadLogs();
+              pollStatus();
+            }
+          } catch (e) {
+            setApiConnected(false);
+          }
+        };
+        checkApi();
+      }, []);
+
+      // Auto-scroll logs
+      useEffect(() => {
+        logsEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      }, [logs]);
+
+      // Poll logs every 500ms when running
+      useEffect(() => {
+        if (!running) return;
+        
+        const fetchLogs = async () => {
+          try {
+            const res = await fetch(`${API_URL}/api/logs`);
+            const data = await res.json();
+            if (data.logs && data.logs.length > logs.length) {
+              setLogs(data.logs);
+            }
+          } catch (e) {
+            console.error("Error fetching logs:", e);
+          }
+        };
+
+        const interval = setInterval(fetchLogs, 500);
+        return () => clearInterval(interval);
+      }, [running, logs.length]);
+
+      const loadAccounts = async () => {
+        try {
+          const res = await fetch(`${API_URL}/api/accounts`);
+          const data = await res.json();
+          if (data.success) {
+            const formatted = data.accounts.map((acc, i) => ({
+              id: acc.id,
+              name: acc.name,
+              username: `compte_${acc.id}`,
+              checked: false,
+              color: COLORS[i % COLORS.length]
+            }));
+            setAccounts(formatted);
+          }
+        } catch (e) {
+          console.error("Failed to load accounts:", e);
+        }
+      };
+
+      // Also load existing logs
+      const loadLogs = async () => {
+        try {
+          const res = await fetch(`${API_URL}/api/logs`);
+          const data = await res.json();
+          if (data.logs) {
+            setLogs(data.logs);
+          }
+        } catch (e) {
+          console.error("Failed to load logs:", e);
+        }
+      };
+
+      const pollStatus = async () => {
+        try {
+          const res = await fetch(`${API_URL}/api/status`);
+          const data = await res.json();
+          setRunning(data.running);
+          setProgress(data.progress);
+        } catch (e) {}
+        setTimeout(pollStatus, 500); // Poll every 500ms instead of 1000ms
+      };
+
+      const addLog = useCallback((msg, type = "info") => {
+        setLogs(l => [...l, { msg, type, time: ts() }]);
+      }, []);
+
+      const selected = accounts.filter(a => a.checked);
+
+      const toggleAccount = (id) => {
+        setAccounts(a => a.map(acc => acc.id === id ? { ...acc, checked: !acc.checked } : acc));
+      };
+
+      const toggleAll = () => {
+        const allChecked = accounts.every(a => a.checked);
+        setAccounts(a => a.map(acc => ({ ...acc, checked: !allChecked })));
+      };
+
+      const addAccount = async () => {
+        if (!newForm.key || !newForm.secret || !newForm.token || !newForm.tokenSecret) {
+          addLog("Tous les champs sont requis", "err");
+          return;
+        }
+        setAdding(true);
+        try {
+          const res = await fetch(`${API_URL}/api/accounts/add`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              api_key: newForm.key,
+              api_secret: newForm.secret,
+              access_token: newForm.token,
+              access_token_secret: newForm.tokenSecret
+            })
+          });
+          const data = await res.json();
+          if (data.success) {
+            addLog(`✅ Compte ${data.account_id} ajouté`, "ok");
+            setNewForm({ key: "", secret: "", token: "", tokenSecret: "" });
+            loadAccounts();
+            setTab("run");
+          } else {
+            addLog(`❌ ${data.error}`, "err");
+          }
+        } catch (e) {
+          addLog(`❌ Erreur: ${e.message}`, "err");
+        }
+        setAdding(false);
+      };
+
+      const removeAccount = async (id) => {
+        try {
+          const res = await fetch(`${API_URL}/api/accounts/${id}`, { method: "DELETE" });
+          const data = await res.json();
+          if (data.success) {
+            addLog(`✅ Compte ${id} supprimé`, "ok");
+            loadAccounts();
+          }
+        } catch (e) {
+          addLog(`❌ Erreur: ${e.message}`, "err");
+        }
+      };
+
+      const validLinks = links.split("\n").map(l => l.trim()).filter(l => l.startsWith("http"));
+
+      const launch = async () => {
+        if (selected.length === 0) { addLog("Sélectionnez au moins un compte", "err"); return; }
+        if (validLinks.length === 0) { addLog("Aucun lien valide", "err"); return; }
+
+        try {
+          setLogs([]);
+          const res = await fetch(`${API_URL}/api/launch`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              account_ids: selected.map(a => a.id),
+              links: validLinks,
+              nb_comments: nbComments,
+              delay: delay,
+              mode: mode
+            })
+          });
+          const data = await res.json();
+          if (data.success) {
+            addLog(`🚀 Lancement — ${data.accounts} compte(s), ${data.links} tweet(s)`, "info");
+            addLog(`Mode: ${mode === "real" ? "🔴 RÉEL" : "🟡 SIMULATION"}`, mode === "real" ? "err" : "warn");
+            setTab("monitor");
+          } else {
+            addLog(`❌ ${data.error}`, "err");
+          }
+        } catch (e) {
+          addLog(`❌ Erreur: ${e.message}`, "err");
+        }
+      };
+
+      const stop = async () => {
+        try {
+          await fetch(`${API_URL}/api/stop`, { method: "POST" });
+          addLog("⛔ Arrêt demandé", "warn");
+        } catch (e) {
+          addLog(`❌ Erreur: ${e.message}`, "err");
+        }
+      };
+
+      if (!apiConnected) {
+        return (
+          <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ textAlign: "center" }}>
+              <div style={{ marginBottom: 16 }}>
+                <div className="spinner" style={{ width: 28, height: 28, margin: "0 auto" }} />
+              </div>
+              <h2 style={{ fontFamily: "var(--font-display)", fontSize: 18, marginBottom: 8 }}>Connecté à l'API...</h2>
+              <p style={{ color: "var(--muted)", fontFamily: "var(--font-mono)", fontSize: 12 }}>
+                Vérifiez que le serveur Flask fonctionne sur http://localhost:5000
+              </p>
+            </div>
+          </div>
+        );
+      }
+
+      return (
+        <div className="container">
+          {/* Header */}
+          <div className="header">
+            <div>
+              <div className="header-title">
+                <div style={{ width: 10, height: 10, borderRadius: "50%", background: "var(--green)" }} className="blink" />
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--green)", letterSpacing: "0.15em" }}>🔗 API CONNECTÉE</span>
+              </div>
+              <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 26 }}>
+                Comment<span style={{ color: "var(--accent2)" }}>Bot</span>
+              </h1>
+            </div>
+            <div className="tab-buttons">
+              {["accounts","run","monitor"].map(t => (
+                <button key={t} className="btn btn-sm" onClick={() => setTab(t)}
+                  style={tab === t ? { background: "var(--accent2)", borderColor: "var(--accent2)", color: "#fff" } : {}}>
+                  {{ accounts: "👤 Comptes", run: "⚙️ Lancement", monitor: "📊 Monitor" }[t]}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* TAB: ACCOUNTS */}
+          {tab === "accounts" && (
+            <div className="fade-up" style={{ display: "grid", gap: 16 }}>
+              
+              {accounts.length > 0 && (
+                <div className="section-card">
+                  <div className="section-header" style={{ justifyContent: "space-between" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <div style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--accent)" }} />
+                      <span className="section-title">Comptes connectés</span>
+                      <span className="tag tag-ok">{accounts.length}</span>
+                    </div>
+                    <button className="btn btn-sm" onClick={toggleAll} style={{ fontSize: 11 }}>
+                      {accounts.every(a => a.checked) ? "Tout désélectionner" : "Tout sélectionner"}
+                    </button>
+                  </div>
+                  <div className="section-body" style={{ display: "grid", gap: 8 }}>
+                    {accounts.map((acc, i) => (
+                      <div key={acc.id} className={`account-row${acc.checked ? " selected" : ""}`}
+                        onClick={() => toggleAccount(acc.id)}>
+                        <input type="checkbox" className="checkbox-custom" checked={acc.checked} readOnly />
+                        <div className="avatar" style={{ background: acc.color + "22", color: acc.color, border: `2px solid ${acc.color}44` }}>
+                          {acc.name[0]}
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontWeight: 700, fontSize: 14 }}>{acc.name}</div>
+                          <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--muted)" }}>@{acc.username}</div>
+                        </div>
+                        <button className="btn" onClick={e => { e.stopPropagation(); removeAccount(acc.id); }}
+                          style={{ padding: "4px 8px", background: "transparent", color: "var(--red)", fontSize: 16 }}>
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Add account */}
+              <div className="section-card">
+                <div className="section-header">
+                  <div style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--accent2)" }} />
+                  <span className="section-title">Ajouter un compte</span>
+                </div>
+                <div className="section-body">
+                  <div style={{ marginBottom: 20, padding: 15, background: "rgba(0,229,255,0.05)", border: "1px solid rgba(0,229,255,0.2)", borderRadius: 8 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "var(--accent)", marginBottom: 8 }}>🔐 Méthode recommandée</div>
+                    <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 12, lineHeight: 1.5 }}>
+                      Utilisez le processus d'authentification OAuth sécurisé pour connecter votre compte Twitter.
+                    </div>
+                    <button className="btn btn-primary" onClick={() => window.open('http://localhost:5000/oauth_login.html', '_blank', 'width=800,height=900')} style={{ width: "100%" }}>
+                      🐦 Lancer l'authentification →
+                    </button>
+                  </div>
+
+                  <div style={{ textAlign: "center", margin: "15px 0", color: "var(--muted)", fontSize: 12 }}>OU</div>
+
+                  <div style={{ marginBottom: 10 }}>
+                    <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 8, fontWeight: 600 }}>Connexion manuelle (avancé)</div>
+                    <div className="grid-2" style={{ marginBottom: 10 }}>
+                      {[["API Key", "key"], ["API Secret", "secret"], ["Access Token", "token"], ["Token Secret", "tokenSecret"]].map(([label, field]) => (
+                        <div key={field}>
+                          <div style={{ fontSize: 11, color: "var(--muted)", marginBottom: 5 }}>{label}</div>
+                          <input type="password" placeholder={label} value={newForm[field]}
+                            onChange={e => setNewForm(f => ({ ...f, [field]: e.target.value }))}
+                            style={{ width: "100%" }} />
+                        </div>
+                      ))}
+                    </div>
+                    <button className="btn btn-primary" onClick={addAccount} disabled={adding}>
+                      {adding ? <><div className="spinner" /> Connexion...</> : "⚡ Connecter manuellement"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {accounts.length > 0 && (
+                <button className="btn btn-primary" onClick={() => setTab("run")}>
+                  Configurer le lancement →
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* TAB: RUN */}
+          {tab === "run" && (
+            <div className="fade-up" style={{ display: "grid", gap: 16 }}>
+
+              {/* Selected accounts */}
+              <div className="section-card">
+                <div className="section-header">
+                  <div style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--accent)" }} />
+                  <span className="section-title">Sélection</span>
+                  <span className="tag tag-ok">{selected.length}/{accounts.length}</span>
+                </div>
+                <div className="section-body" style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {selected.length === 0 && <div style={{ color: "var(--muted)", fontSize: 12 }}>Aucun compte sélectionné</div>}
+                  {selected.map(acc => (
+                    <div key={acc.id} style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 12px", borderRadius: 20, background: acc.color + "18", fontSize: 13 }}>
+                      <div style={{ width: 7, height: 7, borderRadius: "50%", background: acc.color }} />
+                      @{acc.username}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Links */}
+              <div className="section-card">
+                <div className="section-header">
+                  <div style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--accent3)" }} />
+                  <span className="section-title">Tweets</span>
+                  {validLinks.length > 0 && <span className="tag tag-ok">{validLinks.length}</span>}
+                </div>
+                <div className="section-body">
+                  <textarea placeholder={"https://x.com/user/status/1234567890\nhttps://x.com/user/status/0987654321"}
+                    value={links} onChange={e => setLinks(e.target.value)}
+                    style={{ width: "100%", height: 120, marginBottom: 6 }} />
+                  <div style={{ fontSize: 11, color: "var(--muted)" }}>Un lien par ligne</div>
+                </div>
+              </div>
+
+              {/* Params */}
+              <div className="section-card">
+                <div className="section-header">
+                  <div style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--accent2)" }} />
+                  <span className="section-title">Paramètres</span>
+                </div>
+                <div className="section-body">
+                  <div className="grid-3">
+                    <div>
+                      <div style={{ fontSize: 11, color: "var(--muted)", marginBottom: 5 }}>Commentaires/tweet</div>
+                      <input type="number" min="1" value={nbComments}
+                        onChange={e => setNbComments(Math.max(1, parseInt(e.target.value) || 1))}
+                        style={{ width: "100%" }} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 11, color: "var(--muted)", marginBottom: 5 }}>Délai (sec)</div>
+                      <input type="number" min="1" value={delay}
+                        onChange={e => setDelay(Math.max(1, parseInt(e.target.value) || 5))}
+                        style={{ width: "100%" }} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 11, color: "var(--muted)", marginBottom: 5 }}>Mode</div>
+                      <select value={mode} onChange={e => setMode(e.target.value)} style={{ width: "100%" }}>
+                        <option value="sim">🟡 Simulation</option>
+                        <option value="real">🔴 Réel</option>
+                      </select>
+                    </div>
+                  </div>
+                  {selected.length > 0 && validLinks.length > 0 && (
+                    <div style={{ marginTop: 16, padding: 14, background: "var(--surface2)", borderRadius: 10 }}>
+                      <div className="grid-3" style={{ gap: 12 }}>
+                        {[["Comptes", selected.length], ["Tweets", validLinks.length], ["Total", selected.length * validLinks.length * nbComments]].map(([label, val]) => (
+                          <div key={label} style={{ textAlign: "center" }}>
+                            <div className="stat-val">{val}</div>
+                            <div className="stat-label">{label}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div style={{ display: "flex", gap: 12 }}>
+                {!running ? (
+                  <button className="btn btn-primary" onClick={launch} disabled={selected.length === 0 || validLinks.length === 0}>
+                    🚀 {mode === "real" ? "LANCER (RÉEL)" : "LANCER"}
+                  </button>
+                ) : (
+                  <button className="btn btn-danger" onClick={stop}>⛔ Arrêter</button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* TAB: MONITOR */}
+          {tab === "monitor" && (
+            <div className="fade-up" style={{ display: "grid", gap: 16 }}>
+
+              {/* Stats */}
+              <div className="grid-4">
+                {[["Logs", logs.length, "💬"], ["Comptes", selected.length, "👤"], ["Progression", `${progress}%`, "📊"], ["Statut", running ? "EN COURS" : "TERMINÉ", running ? "🟢" : "⚪"]].map(([label, val, icon]) => (
+                  <div key={label} className="stat-card">
+                    <div style={{ fontSize: 18, marginBottom: 4 }}>{icon}</div>
+                    <div className="stat-val">{val}</div>
+                    <div className="stat-label">{label}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Progress bar */}
+              {(running || progress > 0) && (
+                <div>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginBottom: 6 }}>
+                    <span>Progression</span><span>{progress}%</span>
+                  </div>
+                  <div className="progress-bar">
+                    <div className="progress-fill" style={{ width: `${progress}%` }} />
+                  </div>
+                </div>
+              )}
+
+              {/* Logs */}
+              <div className="section-card">
+                <div className="section-header" style={{ justifyContent: "space-between" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <div className="terminal-dot" style={{ background: "var(--green)" }} />
+                    <span className="section-title">Terminal</span>
+                  </div>
+                  <button className="btn btn-sm" onClick={() => setLogs([])}>Effacer</button>
+                </div>
+                <div style={{ padding: "12px 16px", maxHeight: 320, overflowY: "auto" }}>
+                  {logs.length === 0 && (
+                    <div style={{ color: "var(--muted)", fontFamily: "var(--font-mono)", fontSize: 12 }}>
+                      En attente de lancement...
+                    </div>
+                  )}
+                  {logs.map((log, i) => (
+                    <div key={i} className={`log-entry log-${log.type}`}>
+                      <span style={{ color: "var(--muted)", marginRight: 8 }}>{log.time}</span>
+                      {log.msg}
+                    </div>
+                  ))}
+                  <div ref={logsEndRef} />
+                </div>
+              </div>
+
+              {!running && logs.length === 0 && (
+                <button className="btn btn-primary" onClick={() => setTab("run")}>
+                  ← Configurer et lancer
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    ReactDOM.render(<App />, document.getElementById("root"));
+  </script>
+</body>
+</html>

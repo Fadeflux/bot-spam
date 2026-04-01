@@ -1,0 +1,28 @@
+{
+  "accounts": [
+    {
+      "id": 1,
+      "name": "Compte 1",
+      "username": "",
+      "user_id": "",
+      "access_token": "",
+      "access_token_secret": "",
+      "status": "disconnected",
+      "created_at": "",
+      "last_used": ""
+    },
+    {
+      "id": 2,
+      "name": "Compte 2",
+      "username": "",
+      "user_id": "",
+      "access_token": "",
+      "access_token_secret": "",
+      "status": "disconnected",
+      "created_at": "",
+      "last_used": ""
+    }
+  ],
+  "last_modified": "",
+  "version": "1.0"
+}

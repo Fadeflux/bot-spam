@@ -1,0 +1,43 @@
+{
+  "bot": {
+    "name": "Twitter Bot Multi-Comptes",
+    "version": "2.0",
+    "author": "Your Name",
+    "description": "Bot d'automatisation de commentaires Twitter avec support multi-comptes parallèle"
+  },
+  "api": {
+    "host": "localhost",
+    "port": 5000,
+    "debug": true,
+    "cors_origins": ["http://localhost:8000", "http://localhost:3000"]
+  },
+  "dashboard": {
+    "host": "localhost",
+    "port": 8000,
+    "refresh_interval": 1000
+  },
+  "twitter": {
+    "api_version": "v2",
+    "auth_method": "oauth1a",
+    "max_retries": 3,
+    "timeout": 30
+  },
+  "features": {
+    "parallel_execution": true,
+    "unlimited_accounts": true,
+    "simulation_mode": true,
+    "real_mode": true,
+    "real_time_logs": true,
+    "progress_tracking": true
+  },
+  "storage": {
+    "accounts_file": "accounts.json",
+    "logs_directory": "logs",
+    "backup_interval": 3600
+  },
+  "security": {
+    "encrypt_tokens": false,
+    "require_auth": false,
+    "allowed_ips": ["127.0.0.1", "localhost"]
+  }
+}

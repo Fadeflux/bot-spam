@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authentification - Twitter Bot</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 100%;
+            padding: 40px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            text-align: center;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #666;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .step {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f5f5f5;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .step.active {
+            display: block;
+        }
+
+        .step-number {
+            display: inline-block;
+            width: 28px;
+            height: 28px;
+            background: #667eea;
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 28px;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        .step h2 {
+            color: #333;
+            font-size: 18px;
+            margin-bottom: 15px;
+        }
+
+        .step p {
+            color: #666;
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 12px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-size: 13px;
+            color: #1565c0;
+        }
+
+        .input-group {
+            margin: 15px 0;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        input[type="text"], input[type="number"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: 'Courier New', monospace;
+        }
+
+        input[type="text"]:focus, input[type="number"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .btn-open-link {
+            background: #1DA1F2;
+            color: white;
+            font-size: 15px;
+            font-weight: bold;
+        }
+
+        .btn-open-link:hover {
+            background: #1a91da;
+        }
+
+        .copy-button {
+            background: #fff;
+            border: 1px solid #ddd;
+            padding: 8px 12px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .copy-button:hover {
+            background: #f5f5f5;
+        }
+
+        .auth-url {
+            background: #f9f9f9;
+            border: 1px solid #ddd;
+            padding: 12px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            word-break: break-all;
+            color: #666;
+            margin: 10px 0;
+        }
+
+        .success-msg {
+            background: #e8f5e9;
+            border-left: 4px solid #4caf50;
+            color: #2e7d32;
+            padding: 12px;
+            border-radius: 4px;
+            margin: 15px 0;
+            font-size: 14px;
+        }
+
+        .error-msg {
+            background: #ffebee;
+            border-left: 4px solid #f44336;
+            color: #c62828;
+            padding: 12px;
+            border-radius: 4px;
+            margin: 15px 0;
+            font-size: 14px;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            vertical-align: middle;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .progress-indicator {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+            gap: 10px;
+        }
+
+        .progress-dot {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: #e0e0e0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            color: #999;
+        }
+
+        .progress-dot.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .progress-dot.completed {
+            background: #4caf50;
+            color: white;
+        }
+
+        .note {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 12px;
+            border-radius: 4px;
+            font-size: 13px;
+            color: #856404;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🐦 Authentification Twitter Bot</h1>
+        <p class="subtitle">Connectez votre compte pour poster les commentaires</p>
+
+        <div class="progress-indicator">
+            <div class="progress-dot active" id="progress-1">1</div>
+            <div class="progress-dot" id="progress-2">2</div>
+            <div class="progress-dot" id="progress-3">3</div>
+        </div>
+
+        <!-- ÉTAPE 1 : Initialisation -->
+        <div class="step active" id="step-1">
+            <h2><span class="step-number">1</span>Initialiser l'authentification</h2>
+            <p>Cliquez sur le bouton ci-dessous pour commencer le processus d'authentification OAuth.</p>
+            
+            <div class="input-group">
+                <label for="account-number">Numéro du compte (optionnel)</label>
+                <input type="number" id="account-number" placeholder="Laissez vide pour auto-attribuer" min="1" value="">
+            </div>
+
+            <div class="info-box">
+                💡 Cet identifiant est utilisé en interne pour gérer plusieurs comptes. Laissez vide pour auto-attribution.
+            </div>
+
+            <div class="button-group">
+                <button class="btn-primary" onclick="startOAuth()">
+                    <span id="start-btn-text">Commencer l'authentification</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- ÉTAPE 2 : Ouverture du lien -->
+        <div class="step" id="step-2">
+            <h2><span class="step-number">2</span>Autoriser l'application</h2>
+            <p>Twitter va vous demander de confirmer l'accès. Cliquez sur le bouton bleu ci-dessous pour ouvrir la page d'autorisation.</p>
+
+            <div id="auth-url-container" style="margin: 15px 0;"></div>
+
+            <div class="info-box">
+                ⚠️ Assurez-vous d'être connecté au compte qui doit poster les commentaires avant de cliquer.
+            </div>
+
+            <div class="note">
+                📝 Après avoir cliqué sur "Autoriser", Twitter vous affichera un code PIN à 7 chiffres. Copiez-le et revenez ici.
+            </div>
+
+            <div class="button-group">
+                <button class="btn-open-link" id="open-auth-btn" onclick="openAuthURL()" style="display: none;">
+                    Ouvrir la page d'autorisation → 
+                </button>
+                <button class="btn-secondary" onclick="goToStep(3)">Entrer le PIN →</button>
+            </div>
+        </div>
+
+        <!-- ÉTAPE 3 : Saisie du PIN -->
+        <div class="step" id="step-3">
+            <h2><span class="step-number">3</span>Entrer le PIN Twitter</h2>
+            <p>Twitter vous a fourni un code PIN à 7 chiffres après l'autorisation. Entrez-le ci-dessous.</p>
+
+            <div class="input-group">
+                <label for="pin-input">Code PIN (7 chiffres)</label>
+                <input type="text" id="pin-input" placeholder="Ex: 1234567" maxlength="7" pattern="\d{7}" oninput="this.value = this.value.replace(/\D/g, '')">
+            </div>
+
+            <div id="message-container"></div>
+
+            <div class="button-group">
+                <button class="btn-secondary" onclick="goToStep(2)">← Retour</button>
+                <button class="btn-primary" id="submit-pin-btn" onclick="submitPIN()">Valider l'authentification</button>
+            </div>
+        </div>
+
+        <!-- ÉTAPE 4 : Succès -->
+        <div class="step" id="step-4">
+            <h2><span class="step-number">✓</span>Authentification réussie !</h2>
+            <div class="success-msg">
+                ✅ Votre compte a été connecté avec succès !
+            </div>
+            <p>Votre compte est maintenant prêt à poster les commentaires via le bot.</p>
+            <div id="success-details" style="background: #f5f5f5; padding: 15px; border-radius: 6px; margin: 15px 0; font-size: 14px;"></div>
+            <div class="button-group">
+                <button class="btn-primary" onclick="window.location.href = '/dashboard.html'">Aller au dashboard</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:5000/api';
+        let sessionId = null;
+        let authUrl = null;
+        let currentStep = 1;
+
+        async function startOAuth() {
+            const accountBtn = document.getElementById('start-btn-text');
+            const originalText = accountBtn.textContent;
+            accountBtn.innerHTML = '<span class="loading"></span>Chargement...';
+            
+            try {
+                const accountNumber = document.getElementById('account-number').value;
+                const payload = {};
+                if (accountNumber) {
+                    payload.account_number = parseInt(accountNumber);
+                }
+
+                const response = await fetch(`${API_URL}/oauth/start`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+
+                if (!data.success) {
+                    showError(data.error || 'Erreur lors du démarrage');
+                    accountBtn.textContent = originalText;
+                    return;
+                }
+
+                sessionId = data.session_id;
+                authUrl = data.auth_url;
+                
+                // Affiche l'URL
+                const container = document.getElementById('auth-url-container');
+                container.innerHTML = `
+                    <div class="auth-url">${authUrl}</div>
+                    <div style="text-align: center;">
+                        <button class="copy-button" onclick="copyToClipboard('${authUrl}')">📋 Copier le lien</button>
+                    </div>
+                `;
+
+                // Montre le bouton d'ouverture du lien
+                document.getElementById('open-auth-btn').style.display = 'block';
+                
+                goToStep(2);
+                accountBtn.textContent = originalText;
+            } catch (error) {
+                showError('Erreur réseau: ' + error.message);
+                accountBtn.textContent = originalText;
+            }
+        }
+
+        function openAuthURL() {
+            if (authUrl) {
+                // Détecte si c'est une application bureau ou web
+                window.open(authUrl, '_blank', 'width=600,height=700');
+            }
+        }
+
+        function goToStep(stepNum) {
+            // Cache toutes les étapes
+            document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.progress-dot').forEach((d, i) => {
+                d.classList.remove('active', 'completed');
+                if (i + 1 < stepNum) d.classList.add('completed');
+                else if (i + 1 === stepNum) d.classList.add('active');
+            });
+
+            // Affiche l'étape demandée
+            document.getElementById(`step-${stepNum}`).classList.add('active');
+            currentStep = stepNum;
+
+            // Remet le focus sur le PIN si étape 3
+            if (stepNum === 3) {
+                document.getElementById('pin-input').focus();
+            }
+        }
+
+        async function submitPIN() {
+            const pin = document.getElementById('pin-input').value.trim();
+
+            if (!pin || !/^\d{7}$/.test(pin)) {
+                showError('Veuillez entrer un code PIN valide (7 chiffres)');
+                return;
+            }
+
+            const btn = document.getElementById('submit-pin-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading"></span>Vérification...';
+
+            try {
+                const response = await fetch(`${API_URL}/oauth/complete`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        session_id: sessionId,
+                        pin: pin
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!data.success) {
+                    showError(data.error || 'Erreur lors de la validation');
+                    btn.disabled = false;
+                    btn.innerHTML = 'Valider l\'authentification';
+                    return;
+                }
+
+                // Succès
+                const details = document.getElementById('success-details');
+                details.innerHTML = `
+                    <strong>Compte connecté :</strong> @${data.username}<br>
+                    <small>${data.accounts.length} compte(s) disponible(s) au total</small>
+                `;
+
+                goToStep(4);
+                clearMessageContainer();
+            } catch (error) {
+                showError('Erreur réseau: ' + error.message);
+                btn.disabled = false;
+                btn.innerHTML = 'Valider l\'authentification';
+            }
+        }
+
+        function showError(message) {
+            const container = document.getElementById('message-container');
+            const restartBtn = message.includes("expirée") || message.includes("invalide") 
+                ? `<button class="btn-secondary" style="margin-top: 10px; width: 100%;" onclick="restartOAuth()">🔄 Recommencer</button>`
+                : '';
+            container.innerHTML = `
+                <div class="error-msg">
+                    ❌ ${message}
+                    ${restartBtn}
+                </div>
+            `;
+        }
+
+        function restartOAuth() {
+            sessionId = null;
+            authUrl = null;
+            document.getElementById('account-number').value = '';
+            document.getElementById('pin-input').value = '';
+            goToStep(1);
+            clearMessageContainer();
+        }
+
+        function clearMessageContainer() {
+            document.getElementById('message-container').innerHTML = '';
+        }
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                alert('Lien copié !');
+            }).catch(() => {
+                alert('Impossible de copier. Copiez manuellement.');
+            });
+        }
+
+        // Valide le format du PIN en temps réel
+        document.getElementById('pin-input')?.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                submitPIN();
+            }
+        });
+    </script>
+</body>
+</html>

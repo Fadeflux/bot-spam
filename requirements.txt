@@ -1,0 +1,27 @@
+# Twitter API
+tweepy==4.14.0
+
+# Web Framework
+Flask==3.0.0
+Flask-CORS==4.0.0
+
+# Environment Variables
+python-dotenv==1.0.0
+
+# Request
+requests==2.31.0
+
+# Data Processing
+pandas==2.1.1
+
+# Async/Threading
+asyncio==3.4.3
+
+# JSON Processing
+jsonify==0.5
+
+# Logging
+loguru==0.7.2
+
+# Development
+python-dotenv==1.0.0
