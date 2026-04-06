@@ -1,7 +1,7 @@
 """
 =============================================================
-  AUTOMATISATION DE COMMENTAIRES - Twitter/X API v2
-  Authentification OAuth 1.0a (PIN-based) via Tweepy
+   AUTOMATISATION DE COMMENTAIRES - Twitter/X API v2
+   Authentification OAuth 1.0a (PIN-based) via Tweepy
 =============================================================
 
 PRÉREQUIS :
@@ -24,7 +24,8 @@ import logging
 import os
 import sys
 import threading
-from concurrent.futures import ThreadPoolExecutor
+import uuid
+import random
 from dotenv import load_dotenv, set_key
 
 # ──────────────────────────────────────────────
@@ -91,10 +92,10 @@ def charger_tous_comptes():
 # Chaque session contient des données + un timestamp pour le timeout
 _oauth_sessions = {}
 _OAUTH_SESSION_TIMEOUT = 1800  # 30 minutes en secondes
-import time
+_MAX_OAUTH_SESSIONS = 100  # Limite pour éviter fuite mémoire
 
 def _nettoyer_sessions_expirees():
-    """Supprime les sessions OAuth expirées (> 30 min)."""
+    """Supprime les sessions OAuth expirées (> 30 min) et applique limite de taille."""
     now = time.time()
     sessions_expirees = [
         sid for sid, data in _oauth_sessions.items()
@@ -103,6 +104,16 @@ def _nettoyer_sessions_expirees():
     for sid in sessions_expirees:
         del _oauth_sessions[sid]
         print(f"⏰ Session OAuth {sid[:8]}... expirée (> 30 min)")
+    
+    # Si trop de sessions, supprime les plus anciennes
+    if len(_oauth_sessions) > _MAX_OAUTH_SESSIONS:
+        sorted_sessions = sorted(
+            _oauth_sessions.items(),
+            key=lambda x: x[1].get("created_at", 0)
+        )
+        for sid, _ in sorted_sessions[:-_MAX_OAUTH_SESSIONS]:
+            del _oauth_sessions[sid]
+            print(f"🧹 Session OAuth {sid[:8]}... supprimée (limite mémoire)")
 
 def generer_url_oauth(numero_compte=None):
     """
@@ -136,7 +147,6 @@ def generer_url_oauth(numero_compte=None):
     auth_url = oauth_handler.get_authorization_url()
     
     # Stocke la session pour la valider plus tard
-    import uuid
     session_id = str(uuid.uuid4())
     _oauth_sessions[session_id] = {
         "oauth_handler": oauth_handler,
@@ -365,7 +375,7 @@ def connecter_compte(numero_compte=None):
 
 def extraire_id_depuis_lien(lien):
     """
-    Extrait l'ID numérique d'un tweet à partir de son URL.
+    Extrait l'ID numérique d'un tweet à partir de son URL avec VALIDATION STRICTE.
 
     Formats supportés :
         https://twitter.com/user/status/1234567890
@@ -375,16 +385,21 @@ def extraire_id_depuis_lien(lien):
     Returns:
         ID du tweet (str) ou None si lien invalide
     """
+    # Validation stricte
+    if not isinstance(lien, str):
+        return None
+    
+    if not lien.startswith(('http://', 'https://')):
+        return None
+    
     pattern = r"(?:twitter\.com|x\.com)/\w+/status/(\d+)"
     match   = re.search(pattern, lien)
 
     if match:
         tweet_id = match.group(1)
-        print(f"   🔗 ID extrait : {tweet_id}")
         return tweet_id
-    else:
-        print(f"   ❌ Lien invalide : {lien}")
-        return None
+    
+    return None
 
 
 # ──────────────────────────────────────────────
@@ -429,9 +444,7 @@ def generer_commentaire(tweet_texte, modele="contextuel"):
     Returns:
         Commentaire (str)
     """
-    import random
-
-    # Segments combinatoires
+    # Segments combinatoires avec plus de variété
     debuts = [
         "Great",
         "Awesome",
@@ -439,7 +452,10 @@ def generer_commentaire(tweet_texte, modele="contextuel"):
         "Brilliant",
         "Fantastic",
         "Amazing",
-        "Incredible"
+        "Incredible",
+        "Wonderful",
+        "Outstanding",
+        "Impressive"
     ]
 
     milieux = [
@@ -449,7 +465,10 @@ def generer_commentaire(tweet_texte, modele="contextuel"):
         "post",
         "perspective",
         "analysis",
-        "approach"
+        "approach",
+        "insight",
+        "work",
+        "effort"
     ]
 
     fins = [
@@ -459,7 +478,10 @@ def generer_commentaire(tweet_texte, modele="contextuel"):
         "super helpful 💡",
         "keep it up! 🚀",
         "mind-blowing! 🤩",
-        "impressive! ⚡"
+        "impressive! ⚡",
+        "brilliant! ✨",
+        "really valuable 💎",
+        "interesting perspective 👀"
     ]
 
     # Combinaisons aleatoires
@@ -642,23 +664,30 @@ def lancer_comptes_parallelement(clients, liens, nb_commentaires=1, delai=10, si
 
     threads = []
     resultats_par_compte = {}
+    erreurs_par_compte = {}
     lock = threading.Lock()  # Pour éviter les conflits d'affichage
 
     def executer_compte(compte_num, client, username):
-        """Exécute la tâche pour un compte spécifique."""
-        print(f"\n   🔵 [{username}] DÉMARRAGE → Poste des commentaires...")
-        resultats = automatiser_depuis_liens(
-            client=client,
-            compte=username,
-            liens=liens,
-            nb_commentaires=nb_commentaires,
-            delai=delai,
-            simulation=simulation,
-            simulation_locale=simulation_locale
-        )
-        with lock:
-            resultats_par_compte[username] = resultats
-        print(f"   ✅ [{username}] TERMINÉ → Tous les commentaires sont postés !")
+        """Exécute la tâche pour un compte spécifique avec gestion d'erreur."""
+        try:
+            print(f"\n   🔵 [{username}] DÉMARRAGE → Poste des commentaires...")
+            resultats = automatiser_depuis_liens(
+                client=client,
+                compte=username,
+                liens=liens,
+                nb_commentaires=nb_commentaires,
+                delai=delai,
+                simulation=simulation,
+                simulation_locale=simulation_locale
+            )
+            with lock:
+                resultats_par_compte[username] = resultats
+            print(f"   ✅ [{username}] TERMINÉ → Tous les commentaires sont postés !")
+        except Exception as e:
+            # Capture les erreurs et les stocke
+            with lock:
+                erreurs_par_compte[username] = str(e)
+            print(f"   ❌ [{username}] ERREUR : {str(e)}")
 
     # Crée un thread par compte
     for compte_num in sorted(clients.keys()):
@@ -690,8 +719,15 @@ def lancer_comptes_parallelement(clients, liens, nb_commentaires=1, delai=10, si
         statut = "✅" if nb > 0 else "⚠️"
         print(f"   {statut} @{username} → {nb} commentaire(s) traité(s)")
     
+    # Affiche les erreurs s'il y en a
+    if erreurs_par_compte:
+        print("\n" + "-" * 70)
+        print("   ⚠️ ERREURS DÉTECTÉES :")
+        for username, erreur in erreurs_par_compte.items():
+            print(f"   ❌ @{username} : {erreur}")
+    
     print("\n" + "-" * 70)
-    print(f"   📊 TOTAL : {total_commentaires} commentaire(s) postés par {len(clients)} compte(s)")
+    print(f"   📊 TOTAL : {total_commentaires} commentaire(s) postés par {len(resultats_par_compte)}/{len(clients)} compte(s)")
     print("=" * 70 + "\n")
 
 
@@ -987,9 +1023,13 @@ def interface_interactive():
                 print("  ❌ Entrez au moins un lien !")
                 continue
         if lien.startswith("http"):
-            liens_cibles.append(lien)
-            print("       ✅ Lien accepté")
-            compteur += 1
+            # Valide strictement le lien
+            if extraire_id_depuis_lien(lien):
+                liens_cibles.append(lien)
+                print("       ✅ Lien accepté")
+                compteur += 1
+            else:
+                print("       ❌ Lien invalide (pas un tweet valide)")
         else:
             print("       ❌ Invalide (doit commencer par http)")
 
@@ -1016,8 +1056,8 @@ def interface_interactive():
     try:
         delai = int(delai_input)
         if delai < 5:
+            print("  ⚠️  Délai minimum appliqué : 5 secondes")
             delai = 5
-            print("  ⚠️  Délai minimum : 5 secondes")
     except ValueError:
         delai = 10
         print("  ⚠️  Invalide, délai défini à 10s")
